@@ -1,0 +1,11 @@
+axon api keys.txt
+.env
+.env.*
+!.env.example
+
+venv/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+chroma_db/

@@ -1,0 +1,161 @@
+{
+  "stud-21it001": {
+    "id": "stud-21it001",
+    "role": "student",
+    "name": "Kavitha S.",
+    "roll_number": "21IT001",
+    "email": "kavitha.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it015": {
+    "id": "stud-21it015",
+    "role": "student",
+    "name": "Dinesh Kumar R.",
+    "roll_number": "21IT015",
+    "email": "dinesh.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it027": {
+    "id": "stud-21it027",
+    "role": "student",
+    "name": "Bhavani Devi",
+    "roll_number": "21IT027",
+    "email": "bhavani.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it042": {
+    "id": "stud-21it042",
+    "role": "student",
+    "name": "Vigneshwaran P.",
+    "roll_number": "21IT042",
+    "email": "vignesh.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it055": {
+    "id": "stud-21it055",
+    "role": "student",
+    "name": "Sneha R.",
+    "roll_number": "21IT055",
+    "email": "sneha.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it063": {
+    "id": "stud-21it063",
+    "role": "student",
+    "name": "Manoj Prabhakar",
+    "roll_number": "21IT063",
+    "email": "manoj.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it078": {
+    "id": "stud-21it078",
+    "role": "student",
+    "name": "Divya Bharathi",
+    "roll_number": "21IT078",
+    "email": "divya.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21it092": {
+    "id": "stud-21it092",
+    "role": "student",
+    "name": "Harish V.",
+    "roll_number": "21IT092",
+    "email": "harish.21it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21cs042": {
+    "id": "stud-21cs042",
+    "role": "student",
+    "name": "Arjun Kumar",
+    "roll_number": "21CS042",
+    "email": "arjun.21cs@axon.edu",
+    "department": "Computer Science & Engineering",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21cs058": {
+    "id": "stud-21cs058",
+    "role": "student",
+    "name": "Priya Sundaram",
+    "roll_number": "21CS058",
+    "email": "priya.21cs@axon.edu",
+    "department": "Computer Science & Engineering",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21cs014": {
+    "id": "stud-21cs014",
+    "role": "student",
+    "name": "Ananya Verma",
+    "roll_number": "21CS014",
+    "email": "ananya.21cs@axon.edu",
+    "department": "Computer Science & Engineering",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "stud-21cs033": {
+    "id": "stud-21cs033",
+    "role": "student",
+    "name": "Karthik Raja",
+    "roll_number": "21CS033",
+    "email": "karthik.21cs@axon.edu",
+    "department": "Computer Science & Engineering",
+    "password_hash": "$2b$12$9MvMDOmHFIV9FmgDX14TC.1qMemEJTUfLameIeaVMbvcyAGQ5.ny2"
+  },
+  "staff-001": {
+    "id": "staff-001",
+    "role": "staff",
+    "name": "Miss. Ramya Tamizharasi",
+    "email": "ramya.staff@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$/NyUwxYjk7APrYoqBKrwD.YzXPQJP29tPJoL9sowePPwWrrLTF3vu"
+  },
+  "hod-001": {
+    "id": "hod-001",
+    "role": "hod",
+    "name": "Dr. Selvi",
+    "email": "hod.it@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$ICzMBtpk6q1t38kljpA9d.JIOE2CguI4IJcMeyf5EpQltLlD.lwk6"
+  },
+  "stud-21it555": {
+    "id": "stud-21it555",
+    "role": "student",
+    "name": "V. Anitha",
+    "roll_number": "21IT555",
+    "email": "21it555@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$cdnamiM0QqM5sVnpVedpBuEPaGejBzZ836aM1SwvHP4QGCdhHkxtS"
+  },
+  "stud-21it777": {
+    "id": "stud-21it777",
+    "role": "student",
+    "name": "M. Sanjay",
+    "roll_number": "21IT777",
+    "email": "21it777@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$g9/fHhQ1AnmI09JOtduCIeuVSluSOFZcPG2AnUs1C3VIwn.152mze"
+  },
+  "staff-4b15f5": {
+    "id": "staff-4b15f5",
+    "role": "staff",
+    "name": "Mr. Saravanan K.",
+    "email": "saravanan.staff@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$0umPEqbtnSDzA/8EIZshTO3VPIYOl40/UwjpuH4PrpB8CIhVw0bIS"
+  },
+  "stud-11234003": {
+    "id": "stud-11234003",
+    "role": "student",
+    "name": "Arun X",
+    "roll_number": "11234003",
+    "email": "11234003@axon.edu",
+    "department": "Information Technology",
+    "password_hash": "$2b$12$GYqFeRG1Q6Sw./EA7SZNLuKNdtNK55EQ./ZjyJUg38e0TZa2I3fmC"
+  }
+}

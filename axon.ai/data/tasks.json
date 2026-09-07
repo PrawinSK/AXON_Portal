@@ -1,0 +1,62 @@
+[
+  {
+    "id": "task-001",
+    "student_id": "stud-21cs042",
+    "student_name": "Arjun Kumar",
+    "assigned_by_name": "Dr. S. Meenakshi (HOD)",
+    "assigned_by_role": "hod",
+    "target_skill": "Redis Caching & Invalidation",
+    "description": "Implement Redis Cache-Aside pattern with PostgreSQL CDC invalidation. Score >= 7.0 on graded assessment to clear.",
+    "status": "assigned",
+    "due_date": "2026-10-15",
+    "created_at": "2026-09-01T10:00:00Z"
+  },
+  {
+    "id": "task-002",
+    "student_id": "stud-21cs042",
+    "student_name": "Arjun Kumar",
+    "assigned_by_name": "Dr. Ramesh K. (Staff)",
+    "assigned_by_role": "staff",
+    "target_skill": "Distributed Systems & Idempotency",
+    "description": "Review HTTP idempotent methods and database connection pool sizing under heavy load.",
+    "status": "assigned",
+    "due_date": "2026-10-20",
+    "created_at": "2026-09-02T14:30:00Z"
+  },
+  {
+    "id": "task-003",
+    "student_id": "stud-21cs033",
+    "student_name": "Karthik Raja",
+    "assigned_by_name": "Dr. S. Meenakshi (HOD)",
+    "assigned_by_role": "hod",
+    "target_skill": "Redis & In-Memory Storage",
+    "description": "Study Redis maxmemory eviction policies (allkeys-lru vs volatile-lru).",
+    "status": "assigned",
+    "due_date": "2026-10-18",
+    "created_at": "2026-09-03T11:15:00Z"
+  },
+  {
+    "id": "task-4c2ece",
+    "student_id": "stud-21it555",
+    "student_name": "V. Anitha",
+    "assigned_by_name": "Miss. Ramya Tamizharasi (STAFF)",
+    "assigned_by_role": "staff",
+    "target_skill": "API Security & JWT",
+    "description": "Implement refresh token rotation and secure cookie flags.",
+    "status": "assigned",
+    "due_date": "2026-10-31",
+    "created_at": "2026-09-07T07:44:21.432173+00:00"
+  },
+  {
+    "id": "task-e50f9b",
+    "student_id": "stud-21it777",
+    "student_name": "M. Sanjay",
+    "assigned_by_name": "Dr. Selvi (HOD)",
+    "assigned_by_role": "hod",
+    "target_skill": "Microservices Resiliency",
+    "description": "Configure Envoy circuit breakers with rate limit fallback.",
+    "status": "assigned",
+    "due_date": "2026-11-05",
+    "created_at": "2026-09-07T07:44:21.439951+00:00"
+  }
+]
