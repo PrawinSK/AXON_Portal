@@ -58,6 +58,13 @@ class KeyPoolManager:
                 if k_clean:
                     loaded_keys.append(k_clean)
 
+        # Also automatically collect keys from environment variables like API_KEY_1, API_KEY_2, GEMINI_KEY_*, etc.
+        for env_name, env_val in os.environ.items():
+            if (env_name.startswith("API_KEY") or env_name.startswith("GEMINI_KEY") or env_name.startswith("GEMINI_API_KEY")) and env_val:
+                val_clean = env_val.strip()
+                if val_clean and val_clean not in loaded_keys:
+                    loaded_keys.append(val_clean)
+
         # Remove duplicates while preserving order
         unique_keys = list(dict.fromkeys(loaded_keys))
         
