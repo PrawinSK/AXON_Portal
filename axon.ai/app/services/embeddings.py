@@ -1,24 +1,20 @@
-from sentence_transformers import SentenceTransformer
-
-_model = None
-
-
-def get_model():
-    global _model
-
-    if _model is None:
-        print("Loading embedding model...")
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    return _model
+import os
+from app.services.key_pool import key_pool
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    model = get_model()
+    """
+    Generates text embeddings via Google Gemini API using key_pool rotation.
+    Replaces heavy local PyTorch / sentence_transformers models to fit on Render's 512MB RAM tier.
+    """
+    if not texts:
+        return []
 
-    embeddings = model.encode(
-        texts,
-        convert_to_numpy=True
-    )
+    def call_embedding(client) -> list[list[float]]:
+        res = client.models.embed_content(
+            model="gemini-embedding-001",
+            contents=texts
+        )
+        return [e.values for e in res.embeddings]
 
-    return embeddings.tolist()
+    return key_pool.execute(call_embedding)
