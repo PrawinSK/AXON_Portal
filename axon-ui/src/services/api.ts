@@ -11,7 +11,20 @@ import type {
   DepartmentStudentProfile,
 } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('axon_api_url');
+    if (stored && stored.trim()) {
+      return stored.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return 'http://127.0.0.1:8000';
+};
+
 
 class ApiService {
   private token: string | null = null;
@@ -37,7 +50,8 @@ class ApiService {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${BASE_URL}${endpoint}`;
+    const baseUrl = getBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
     const token = this.getToken();
     
     const headers: Record<string, string> = {
