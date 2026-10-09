@@ -62,6 +62,10 @@ def api_health():
         "api_keys_required": False
     }
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
 
 @app.get("/config")
 def config():

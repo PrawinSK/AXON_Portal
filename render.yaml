@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: axon-app
+    env: python
+    buildCommand: |
+      # Install backend dependencies
+      cd axon.ai && pip install -r requirements.txt
+      # Build the frontend assets
+      cd ../axon-ui && npm ci && npm run build
+      # Copy built assets into backend for static serving
+      cp -r dist ../../axon.ai/dist
+    startCommand: |
+      # Run FastAPI on the port Render provides
+      cd axon.ai && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars: []
