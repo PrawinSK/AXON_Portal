@@ -24,14 +24,16 @@ const getBaseUrl = (): string => {
     if (stored && stored.trim()) {
       return stored.trim().replace(/\/+$/, '');
     }
-    // If hosted together on port 8000 or on Render, use the same origin automatically
-    if (window.location.port === '8000' || window.location.hostname.includes('onrender.com')) {
-      return window.location.origin;
-    }
   }
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    // If hosted together on port 8000 or on Render, use the same origin automatically
+    if (window.location.port === '8000' || window.location.hostname.includes('onrender.com')) {
+      return window.location.origin;
+    }
   }
   return 'http://127.0.0.1:8000';
 };

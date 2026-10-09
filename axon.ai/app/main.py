@@ -77,10 +77,21 @@ def config():
     }
 
 
-# Mount and serve built React frontend from axon-ui/dist
-FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "axon-ui" / "dist"
+# Mount and serve built React frontend
+possible_dist_dirs = [
+    Path(__file__).resolve().parent.parent.parent / "axon-ui" / "dist",
+    Path(__file__).resolve().parent.parent / "dist",
+    Path.cwd() / "axon-ui" / "dist",
+    Path.cwd() / "dist",
+]
 
-if FRONTEND_DIST.exists():
+FRONTEND_DIST = None
+for candidate in possible_dist_dirs:
+    if candidate.exists() and (candidate / "index.html").exists():
+        FRONTEND_DIST = candidate
+        break
+
+if FRONTEND_DIST:
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
