@@ -5,15 +5,14 @@ import {
   Sparkles,
   Cpu,
   BarChart3,
-  Activity,
   ShieldCheck,
   LogOut,
   Users,
   BookOpen,
-  ClipboardList,
   GraduationCap,
   Briefcase,
-  ShieldAlert
+  ShieldAlert,
+  CheckSquare
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -36,10 +35,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await api.checkBackendHealth();
+        await api.checkBackendHealth();
         setBackendStatus({
           online: true,
-          capacity: role === 'hod' ? (res.pool_capacity || '50 Keys / 750 RPM') : 'Institutional Node Online',
+          capacity: 'Institutional Node Online',
         });
       } catch {
         setBackendStatus({
@@ -151,20 +150,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               </button>
 
               <button
-                onClick={() => onSelectTab('tasks')}
+                onClick={() => onSelectTab('mcq-verify')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'tasks'
+                  activeTab === 'mcq-verify'
                     ? 'bg-white text-indigo-600 shadow-sm dark:bg-indigo-600 dark:text-white dark:shadow-indigo-500/20'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <ClipboardList className="w-4 h-4" />
-                <span>Remediation Tasks</span>
+                <CheckSquare className="w-4 h-4" />
+                <span>MCQ Question Verify</span>
               </button>
             </>
           )}
 
-          {/* HOD TABS (Strictly holds 50-Key Pool and Full Department Heatmap) */}
+          {/* HOD TABS */}
           {role === 'hod' && (
             <>
               <button
@@ -192,27 +191,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               </button>
 
               <button
-                onClick={() => onSelectTab('pool')}
+                onClick={() => onSelectTab('mcq-verify')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'pool'
+                  activeTab === 'mcq-verify'
                     ? 'bg-white text-amber-600 shadow-sm dark:bg-amber-600 dark:text-white dark:shadow-amber-500/20'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Activity className="w-4 h-4" />
-                <span>50-Key Pool (Live)</span>
-              </button>
-
-              <button
-                onClick={() => onSelectTab('tasks')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'tasks'
-                    ? 'bg-white text-amber-600 shadow-sm dark:bg-amber-600 dark:text-white dark:shadow-amber-500/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <ClipboardList className="w-4 h-4" />
-                <span>Remediation Tasks</span>
+                <CheckSquare className="w-4 h-4" />
+                <span>MCQ Question Verify</span>
               </button>
             </>
           )}

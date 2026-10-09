@@ -32,114 +32,14 @@ class AuthService:
         hod_default_hash = hash_password("hod@123")
 
         self._users = {
-            # IT Department Students
-            "stud-21it001": {
-                "id": "stud-21it001",
+            # IT Department Student
+            "stud-11234003": {
+                "id": "stud-11234003",
                 "role": "student",
-                "name": "Kavitha S.",
-                "roll_number": "21IT001",
-                "email": "kavitha.21it@axon.edu",
+                "name": "Candidate 11234003",
+                "roll_number": "11234003",
+                "email": "11234003@axon.edu",
                 "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it015": {
-                "id": "stud-21it015",
-                "role": "student",
-                "name": "Dinesh Kumar R.",
-                "roll_number": "21IT015",
-                "email": "dinesh.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it027": {
-                "id": "stud-21it027",
-                "role": "student",
-                "name": "Bhavani Devi",
-                "roll_number": "21IT027",
-                "email": "bhavani.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it042": {
-                "id": "stud-21it042",
-                "role": "student",
-                "name": "Vigneshwaran P.",
-                "roll_number": "21IT042",
-                "email": "vignesh.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it055": {
-                "id": "stud-21it055",
-                "role": "student",
-                "name": "Sneha R.",
-                "roll_number": "21IT055",
-                "email": "sneha.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it063": {
-                "id": "stud-21it063",
-                "role": "student",
-                "name": "Manoj Prabhakar",
-                "roll_number": "21IT063",
-                "email": "manoj.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it078": {
-                "id": "stud-21it078",
-                "role": "student",
-                "name": "Divya Bharathi",
-                "roll_number": "21IT078",
-                "email": "divya.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            "stud-21it092": {
-                "id": "stud-21it092",
-                "role": "student",
-                "name": "Harish V.",
-                "roll_number": "21IT092",
-                "email": "harish.21it@axon.edu",
-                "department": "Information Technology",
-                "password_hash": student_default_hash
-            },
-            # CS Students
-            "stud-21cs042": {
-                "id": "stud-21cs042",
-                "role": "student",
-                "name": "Arjun Kumar",
-                "roll_number": "21CS042",
-                "email": "arjun.21cs@axon.edu",
-                "department": "Computer Science & Engineering",
-                "password_hash": student_default_hash
-            },
-            "stud-21cs058": {
-                "id": "stud-21cs058",
-                "role": "student",
-                "name": "Priya Sundaram",
-                "roll_number": "21CS058",
-                "email": "priya.21cs@axon.edu",
-                "department": "Computer Science & Engineering",
-                "password_hash": student_default_hash
-            },
-            "stud-21cs014": {
-                "id": "stud-21cs014",
-                "role": "student",
-                "name": "Ananya Verma",
-                "roll_number": "21CS014",
-                "email": "ananya.21cs@axon.edu",
-                "department": "Computer Science & Engineering",
-                "password_hash": student_default_hash
-            },
-            "stud-21cs033": {
-                "id": "stud-21cs033",
-                "role": "student",
-                "name": "Karthik Raja",
-                "roll_number": "21CS033",
-                "email": "karthik.21cs@axon.edu",
-                "department": "Computer Science & Engineering",
                 "password_hash": student_default_hash
             },
             # Staff: Miss. Ramya Tamizharasi (IT Department)
@@ -172,8 +72,27 @@ class AuthService:
             except Exception as e:
                 print(f"[AuthService] Warning loading users.json: {e}")
 
-        # Ensure seed/merged users are saved to disk
+        # Purge garbage students, keeping strictly 11234003 and any newly bulk-uploaded students
+        self.remove_all_except(["11234003"])
+
+    def remove_all_except(self, keep_rolls: list[str]) -> int:
+        """Removes all students from the registry except those whose roll numbers are in keep_rolls."""
+        norm_keep = {r.strip().upper() for r in keep_rolls}
+        removed_count = 0
+        filtered_users = {}
+        for uid, user in self._users.items():
+            if user.get("role") == "student":
+                roll = user.get("roll_number", "").strip().upper()
+                if roll in norm_keep:
+                    filtered_users[uid] = user
+                else:
+                    removed_count += 1
+            else:
+                # Retain staff and hod
+                filtered_users[uid] = user
+        self._users = filtered_users
         self._save_users()
+        return removed_count
 
     def _save_users(self):
         try:

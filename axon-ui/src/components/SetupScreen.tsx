@@ -15,15 +15,16 @@ import type { StartInterviewResponse, UploadResponse } from '../types';
 
 interface SetupScreenProps {
   onInterviewStarted: (session: StartInterviewResponse, candidateName: string) => void;
+  onStartMCQ?: () => void;
   initialTargetSkill?: string;
 }
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, initialTargetSkill }) => {
+export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, onStartMCQ, initialTargetSkill }) => {
   const { user } = useAuth();
-  const [studentName, setStudentName] = useState(user?.name || 'Arjun Kumar');
-  const [rollNumber, setRollNumber] = useState(user?.roll_number || '21CS042');
+  const [studentName, setStudentName] = useState(user?.name || '11234003 Candidate');
+  const [rollNumber, setRollNumber] = useState(user?.roll_number || '11234003');
   const [roleTrack, setRoleTrack] = useState('Backend Systems Engineer');
-  const [mode, setMode] = useState<'practice' | 'graded'>(initialTargetSkill ? 'graded' : 'practice');
+  const [mode, setMode] = useState<'practice' | 'mcq'>('mcq');
   const [targetSkill, setTargetSkill] = useState(initialTargetSkill || 'Redis Caching & Invalidation');
   const [maxQuestions, setMaxQuestions] = useState(3); // default 3 for quick demo, configurable up to 25
 
@@ -66,6 +67,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, in
       return;
     }
 
+    if (mode === 'mcq') {
+      if (onStartMCQ) {
+        onStartMCQ();
+        return;
+      }
+    }
+
     setIsStarting(true);
     setStartError(null);
 
@@ -73,7 +81,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, in
       const res = await api.startInterview({
         candidate_id: candidateId,
         student_name: studentName,
-        mode,
+        mode: mode as any,
         role_track: roleTrack,
         target_skill: targetSkill.trim() || undefined,
         max_questions: maxQuestions,
@@ -172,19 +180,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, in
 
               <button
                 type="button"
-                onClick={() => setMode('graded')}
+                onClick={() => setMode('mcq')}
                 className={`p-4 rounded-xl border text-left transition-all ${
-                  mode === 'graded'
+                  mode === 'mcq'
                     ? 'border-blue-600 bg-blue-50/50 dark:border-cyan-500/80 dark:bg-blue-950/30 ring-2 ring-blue-500/20'
                     : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                <div className="flex items-center space-x-2 text-emerald-600 dark:text-cyan-400 font-bold text-sm">
                   <Award className="w-4 h-4" />
-                  <span>Graded Mode</span>
+                  <span>MCQ Mode (Proctored)</span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Official proctored evaluation. Updates HOD heatmap & auto-closes assigned remediation tasks.
+                  20 randomized technical MCQs with cursor & focus proctoring. 3 strikes lock submission.
                 </p>
               </button>
             </div>
@@ -328,10 +336,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, in
               <span>Ready for Assessment</span>
             </div>
             <h4 className="text-lg font-black tracking-tight">
-              {mode === 'practice' ? 'Start Practice Session' : 'Begin Graded Assessment'}
+              {mode === 'practice' ? 'Start Practice Session' : 'Begin 20-Question MCQ Assessment'}
             </h4>
             <p className="text-xs text-blue-100 mt-1 mb-6">
-              AI persona will calibrate difficulty in real-time. Make sure your browser focus is maintained.
+              {mode === 'practice'
+                ? 'AI persona will calibrate difficulty in real-time. Make sure your browser focus is maintained.'
+                : 'Anti-cheat focus proctoring is enabled. Leaving the test window 3 times locks your submission.'}
             </p>
 
             {startError && (
@@ -346,7 +356,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onInterviewStarted, in
               className="w-full py-3.5 px-6 rounded-xl font-bold text-sm bg-white text-blue-700 hover:bg-blue-50 transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>{isStarting ? 'Assembling Context & AI Model...' : 'Launch Interview'}</span>
+              <span>
+                {isStarting
+                  ? 'Assembling Assessment Context...'
+                  : mode === 'practice'
+                  ? 'Launch Practice Interview'
+                  : 'Start Proctored MCQ Assessment'}
+              </span>
             </button>
           </div>
 

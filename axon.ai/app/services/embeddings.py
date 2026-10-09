@@ -1,20 +1,22 @@
-import os
-from app.services.key_pool import key_pool
+"""
+Ultra-fast, zero-model, zero-API-key local text embedding service for AXON.
+Uses scikit-learn HashingVectorizer to project text into 384-dimensional dense vectors
+in milliseconds with zero PyTorch, zero LLM, and ultra-low memory.
+"""
+from typing import Optional
+from sklearn.feature_extraction.text import HashingVectorizer
+
+# 384-dimensional L2-normalized vectorizer matching ChromaDB index dimensions
+_vectorizer = HashingVectorizer(n_features=384, alternate_sign=False, norm='l2')
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """
-    Generates text embeddings via Google Gemini API using key_pool rotation.
-    Replaces heavy local PyTorch / sentence_transformers models to fit on Render's 512MB RAM tier.
+    Generates 384-dimensional text embeddings locally in milliseconds.
+    100% offline, zero API keys, zero LLM models, ultra-low memory.
     """
     if not texts:
         return []
 
-    def call_embedding(client) -> list[list[float]]:
-        res = client.models.embed_content(
-            model="gemini-embedding-001",
-            contents=texts
-        )
-        return [e.values for e in res.embeddings]
-
-    return key_pool.execute(call_embedding)
+    matrix = _vectorizer.transform(texts)
+    return matrix.toarray().tolist()

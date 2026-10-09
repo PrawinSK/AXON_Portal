@@ -8,7 +8,6 @@ from app.models.interview import (
     SynthesisResponse
 )
 from app.services.interview_manager import interview_manager
-from app.services.key_pool import key_pool
 from app.services.auth_service import require_role
 
 router = APIRouter(
@@ -111,12 +110,3 @@ def conclude_interview(
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Synthesis failed: {str(e)}")
-
-
-@router.get("/pool/status")
-def get_key_pool_status(current_user: dict = Depends(require_role(["hod"]))):
-    """
-    Diagnostics endpoint reporting the health, total capacity, and active keys
-    in the 50-key Google Gemini rotation pool. Strictly restricted to HOD.
-    """
-    return key_pool.get_pool_status()

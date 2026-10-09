@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Search,
-  PlusCircle,
   CheckCircle2,
-  Clock,
   BookOpen,
   X,
   Loader2,
@@ -15,10 +13,21 @@ import {
   Mail,
   ShieldCheck,
   Building2,
-  Sparkles
+  Sparkles,
+  Upload,
+  FileSpreadsheet,
+  Award,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../services/api';
-import type { DepartmentStudentProfile, TaskItem, StaffProfile } from '../types';
+import type {
+  DepartmentStudentProfile,
+  StaffProfile,
+  MCQResultSummary,
+  BulkUploadResult,
+  MCQUploadResult,
+} from '../types';
 
 interface StudentProfilesViewProps {
   userRole: 'staff' | 'hod';
@@ -27,19 +36,28 @@ interface StudentProfilesViewProps {
 export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRole }) => {
   const [students, setStudents] = useState<DepartmentStudentProfile[]>([]);
   const [staffList, setStaffList] = useState<StaffProfile[]>([]);
-  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [directoryTab, setDirectoryTab] = useState<'students' | 'staff'>('students');
+  const [directoryTab, setDirectoryTab] = useState<'students' | 'staff' | 'mcq'>('students');
+  const [mcqResults, setMcqResults] = useState<MCQResultSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Assign Task Modal State
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
-  const [assignStudentId, setAssignStudentId] = useState<string>('');
-  const [targetSkill, setTargetSkill] = useState<string>('');
-  const [taskDescription, setTaskDescription] = useState<string>('');
-  const [dueDate, setDueDate] = useState<string>('2026-10-30');
-  const [isSubmittingTask, setIsSubmittingTask] = useState<boolean>(false);
-  const [assignmentSuccess, setAssignmentSuccess] = useState<string | null>(null);
+  // Bulk Student Upload State
+  const [isBulkStudentModalOpen, setIsBulkStudentModalOpen] = useState<boolean>(false);
+  const [bulkStudentFile, setBulkStudentFile] = useState<File | null>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState<boolean>(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<BulkUploadResult | null>(null);
+  const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
+
+  // Bulk MCQ Upload State
+  const [isBulkMCQModalOpen, setIsBulkMCQModalOpen] = useState<boolean>(false);
+  const [bulkMCQFile, setBulkMCQFile] = useState<File | null>(null);
+  const [isMCQUploading, setIsMCQUploading] = useState<boolean>(false);
+  const [mcqUploadResult, setMcqUploadResult] = useState<MCQUploadResult | null>(null);
+  const [mcqUploadError, setMcqUploadError] = useState<string | null>(null);
+
+  // Cleanup State
+  const [isCleaning, setIsCleaning] = useState<boolean>(false);
+  const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
 
   // Add New Student Modal State (Staff & HOD)
   const [isCreateStudentModalOpen, setIsCreateStudentModalOpen] = useState<boolean>(false);
@@ -64,14 +82,14 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [studentData, taskData, staffData] = await Promise.all([
+      const [studentData, staffData, mcqData] = await Promise.all([
         api.getDepartmentStudents(),
-        api.getAllTasks(),
         api.getAllStaff().catch(() => []),
+        api.getAllMCQResults().catch(() => []),
       ]);
       setStudents(studentData || []);
-      setAllTasks(taskData || []);
       setStaffList(staffData || []);
+      setMcqResults(mcqData || []);
     } catch (err) {
       console.error('Failed to load institutional directory data:', err);
     } finally {
@@ -79,43 +97,75 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
     }
   };
 
+  const handleBulkUploadStudents = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkStudentFile) return;
+
+    if (bulkStudentFile.size > 50 * 1024 * 1024) {
+      setBulkUploadError('File size exceeds the strict 50 MiB limit (HTTP 413).');
+      return;
+    }
+
+    setIsBulkUploading(true);
+    setBulkUploadError(null);
+    setBulkUploadResult(null);
+
+    try {
+      const res = await api.bulkUploadStudents(bulkStudentFile);
+      setBulkUploadResult(res);
+      fetchData();
+    } catch (err: any) {
+      setBulkUploadError(err.message || 'Failed to bulk upload students.');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+
+  const handleBulkUploadMCQs = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkMCQFile) return;
+
+    if (bulkMCQFile.size > 50 * 1024 * 1024) {
+      setMcqUploadError('File size exceeds the 50 MiB limit.');
+      return;
+    }
+
+    setIsMCQUploading(true);
+    setMcqUploadError(null);
+    setMcqUploadResult(null);
+
+    try {
+      const res = await api.uploadMCQBank(bulkMCQFile);
+      setMcqUploadResult(res);
+      fetchData();
+    } catch (err: any) {
+      setMcqUploadError(err.message || 'Failed to upload MCQ question bank.');
+    } finally {
+      setIsMCQUploading(false);
+    }
+  };
+
+  const handleCleanupStudents = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to remove all garbage student accounts? Only 11234003 will be preserved.'
+    );
+    if (!confirmed) return;
+
+    setIsCleaning(true);
+    try {
+      const res = await api.cleanupStudents();
+      setCleanupMessage(res.message);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to clean student list.');
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleOpenAssignModal = (studentId?: string, defaultSkill?: string) => {
-    setAssignStudentId(studentId || (students[0]?.id ?? ''));
-    setTargetSkill(defaultSkill || '');
-    setTaskDescription('');
-    setDueDate('2026-10-30');
-    setAssignmentSuccess(null);
-    setIsAssignModalOpen(true);
-  };
-
-  const handleAssignTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assignStudentId || !targetSkill.trim() || !taskDescription.trim()) return;
-
-    setIsSubmittingTask(true);
-    try {
-      await api.assignTask({
-        student_id: assignStudentId,
-        target_skill: targetSkill.trim(),
-        description: taskDescription.trim(),
-        due_date: dueDate,
-      });
-      setAssignmentSuccess(`Remediation task successfully assigned!`);
-      await fetchData();
-      setTimeout(() => {
-        setIsAssignModalOpen(false);
-        setAssignmentSuccess(null);
-      }, 1200);
-    } catch (err: any) {
-      alert(`Assignment failed: ${err.message || 'Unknown error'}`);
-    } finally {
-      setIsSubmittingTask(false);
-    }
-  };
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,6 +270,14 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
     return name.includes(cleanSearch) || email.includes(cleanSearch) || dept.includes(cleanSearch) || role.includes(cleanSearch);
   });
 
+  const filteredMCQResults = mcqResults.filter((r) => {
+    if (!cleanSearch) return true;
+    const name = (r.student_name || '').toLowerCase();
+    const roll = (r.student_id || '').toLowerCase();
+    const status = (r.status || '').toLowerCase();
+    return name.includes(cleanSearch) || roll.includes(cleanSearch) || status.includes(cleanSearch);
+  });
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header Banner */}
@@ -251,27 +309,75 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
             </button>
           )}
 
-          {/* Both Staff & HOD can add students */}
+          {/* Bulk Upload Students (PDF or Excel, max 50 MiB) */}
+          <button
+            onClick={() => {
+              setBulkUploadResult(null);
+              setBulkUploadError(null);
+              setBulkStudentFile(null);
+              setIsBulkStudentModalOpen(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Bulk Upload Students</span>
+          </button>
+
+          {/* Bulk Upload MCQ Question Bank */}
+          <button
+            onClick={() => {
+              setMcqUploadResult(null);
+              setMcqUploadError(null);
+              setBulkMCQFile(null);
+              setIsBulkMCQModalOpen(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Upload MCQ Bank</span>
+          </button>
+
+          {/* Single Student Add */}
           <button
             onClick={() => setIsCreateStudentModalOpen(true)}
             className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Add Student to Axon</span>
+            <span>Add Student</span>
           </button>
 
-          <button
-            onClick={() => handleOpenAssignModal()}
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Assign Remediation Task</span>
-          </button>
+          {/* HOD Purge Inactive Students */}
+          {userRole === 'hod' && (
+            <button
+              onClick={handleCleanupStudents}
+              disabled={isCleaning}
+              title="Purge dummy students, retaining only 11234003"
+              className="flex items-center space-x-1.5 px-3 py-2.5 rounded-xl font-bold text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 hover:bg-rose-100 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isCleaning ? 'Cleaning...' : 'Purge Inactive'}</span>
+            </button>
+          )}
+
         </div>
       </div>
 
       {/* Directory Tab Switcher & Search Bar */}
       <div className="space-y-3">
+        {cleanupMessage && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200">
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <span>{cleanupMessage}</span>
+            </div>
+            <button
+              onClick={() => setCleanupMessage(null)}
+              className="text-emerald-700 dark:text-emerald-400 hover:opacity-75 cursor-pointer text-xs font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950/80 shadow-sm">
           {/* Tab Switcher Buttons */}
           <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-[#0B0F19] border border-slate-200 dark:border-blue-900/60 w-full sm:w-auto">
@@ -312,6 +418,26 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
                 {filteredStaff.length}
               </span>
             </button>
+
+<button
+  onClick={() => setDirectoryTab('mcq')}
+  className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+    directoryTab === 'mcq'
+      ? 'bg-white dark:bg-amber-600 text-amber-600 dark:text-white shadow-sm'
+      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+  }`}
+>
+  <Award className="w-4 h-4" />
+  <span>MCQ Results</span>
+  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+    directoryTab === 'mcq'
+      ? 'bg-amber-100 dark:bg-amber-700 text-amber-700 dark:text-amber-100'
+      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+  }`}
+    >
+    {filteredMCQResults.length}
+  </span>
+</button>
           </div>
 
           {/* Search Input Bar */}
@@ -324,7 +450,9 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
               placeholder={
                 directoryTab === 'students'
                   ? "Search by student name or roll number (e.g. 21IT001)..."
-                  : "Search faculty by name, email, or department..."
+                  : directoryTab === 'staff'
+                  ? "Search faculty by name, email, or department..."
+                  : "Search MCQ results by candidate or roll number..."
               }
               className="w-full pl-10 pr-9 py-2 text-xs rounded-xl border border-slate-200 dark:border-blue-900 bg-slate-50 dark:bg-[#0B0F19] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
@@ -400,9 +528,6 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredStudents.map((s) => {
-              const studentTasks = allTasks.filter((t) => t.student_id === s.id);
-              const pendingTasks = studentTasks.filter((t) => t.status !== 'completed');
-
               const score = s.metrics?.overall_score ?? 7.5;
               const scoreColor =
                 score >= 8.0
@@ -474,40 +599,28 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {weakSkills.map((skill, idx) => (
-                          <button
+                          <span
                             key={idx}
-                            onClick={() => handleOpenAssignModal(s.id, skill)}
-                            title="Click to assign targeted remediation task for this skill"
-                            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 transition-all flex items-center space-x-1 cursor-pointer"
+                            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60"
                           >
-                            <span>{skill}</span>
-                            <PlusCircle className="w-2.5 h-2.5 text-rose-500" />
-                          </button>
+                            {skill}
+                          </span>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Footer: Pending Tasks & Action */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-blue-950 flex items-center justify-between">
-                    <div className="flex items-center space-x-1 text-xs text-slate-500 dark:text-slate-400">
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{pendingTasks.length} pending tasks</span>
-                    </div>
-
-                    <button
-                      onClick={() => handleOpenAssignModal(s.id)}
-                      className="px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-100 dark:bg-blue-950 hover:bg-blue-50 dark:hover:bg-blue-900/60 text-blue-700 dark:text-cyan-300 border border-slate-200 dark:border-blue-800 transition-all cursor-pointer"
-                    >
-                      Assign Task
-                    </button>
+                  {/* Card Footer: Candidate Status */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-blue-950 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-mono text-[11px]">{s.roll_number}</span>
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Active Candidate</span>
                   </div>
                 </div>
               );
             })}
           </div>
         )
-      ) : (
+      ) : directoryTab === 'staff' ? (
         /* TAB 2: FACULTY & STAFF GRID */
         filteredStaff.length === 0 ? (
           <div className="p-12 rounded-3xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950/80 text-center space-y-3">
@@ -616,6 +729,136 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
                 </div>
               );
             })}
+          </div>
+        )
+      ) : (
+        /* TAB 3: MCQ ASSESSMENT RESULTS */
+        filteredMCQResults.length === 0 ? (
+          <div className="p-12 rounded-3xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950/80 text-center space-y-3">
+            <Award className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+            <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-200">No MCQ Assessment Records</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              {cleanSearch
+                ? `No candidate MCQ submissions matched "${searchTerm}".`
+                : "No students have taken proctored MCQ assessments yet."}
+            </p>
+            {cleanSearch && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 cursor-pointer"
+              >
+                Clear Search Filter
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Overview Metric Banner */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-sm">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Attempts</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">{filteredMCQResults.length}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-sm">
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">Passed (≥70%)</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+                  {filteredMCQResults.filter(r => r.passed).length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-sm">
+                <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">Disqualified</span>
+                <span className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
+                  {filteredMCQResults.filter(r => r.status === 'disqualified').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-sm">
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">Average Score</span>
+                <span className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block">
+                  {filteredMCQResults.length > 0
+                    ? Math.round(filteredMCQResults.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / filteredMCQResults.length)
+                    : 0}%
+                </span>
+              </div>
+            </div>
+
+            {/* Results Table */}
+            <div className="rounded-3xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950/80 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-blue-950/80 bg-slate-50/50 dark:bg-slate-900/40 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <th className="py-3.5 px-5">Candidate</th>
+                      <th className="py-3.5 px-4">Roll Number</th>
+                      <th className="py-3.5 px-4 text-center">Score</th>
+                      <th className="py-3.5 px-4 text-center">Percentage</th>
+                      <th className="py-3.5 px-4 text-center">Status</th>
+                      <th className="py-3.5 px-4 text-center">Strikes</th>
+                      <th className="py-3.5 px-5 text-right">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-blue-950/50 text-xs">
+                    {filteredMCQResults.map((result) => {
+                      const isDisqualified = result.status === 'disqualified';
+                      return (
+                        <tr key={result.session_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors">
+                          <td className="py-3.5 px-5 font-bold text-slate-900 dark:text-white">
+                            {result.student_name || 'Candidate'}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-400 text-[11px]">
+                            {result.student_id}
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
+                            {result.score} / {result.total_questions || 20}
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-black ${
+                              result.percentage >= 70
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                                : result.percentage >= 50
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                            }`}>
+                              {Math.round(result.percentage || 0)}%
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            {isDisqualified ? (
+                              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold">
+                                <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                <span>Disqualified</span>
+                              </span>
+                            ) : result.passed ? (
+                              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                <span>Passed</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                                <span>Need Practice</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`font-mono text-xs font-bold ${
+                              result.strikes >= 3
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : result.strikes > 0
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-slate-400 dark:text-slate-500'
+                            }`}>
+                              {result.strikes} / 3
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 text-right font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                            {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : (result.created_at ? new Date(result.created_at).toLocaleDateString() : 'N/A')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )
       )}
@@ -874,12 +1117,13 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
         </div>
       )}
 
-      {/* MODAL 3: Assign Task Modal */}
-      {isAssignModalOpen && (
+
+      {/* MODAL 4: Bulk Upload Students Modal */}
+      {isBulkStudentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <button
-              onClick={() => setIsAssignModalOpen(false)}
+              onClick={() => setIsBulkStudentModalOpen(false)}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
               <X className="w-5 h-5" />
@@ -887,105 +1131,147 @@ export const StudentProfilesView: React.FC<StudentProfilesViewProps> = ({ userRo
 
             <div className="flex items-center space-x-2.5 mb-5">
               <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-cyan-400">
-                <BookOpen className="w-5 h-5" />
+                <Upload className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">
-                  Assign Remediation Task
+                  Bulk Student Upload
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Targeted learning assignment for student
+                  Upload Excel (.xlsx, .xls) or PDF roster (max 50 MiB, 300 students)
                 </p>
               </div>
             </div>
 
-            {assignmentSuccess && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                <span>{assignmentSuccess}</span>
+            {bulkUploadError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{bulkUploadError}</span>
               </div>
             )}
 
-            <form onSubmit={handleAssignTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Select Candidate *
-                </label>
-                <select
-                  value={assignStudentId}
-                  onChange={(e) => setAssignStudentId(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-blue-950 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="" disabled>-- Select Candidate --</option>
-                  {students.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name} — {st.roll_number} ({st.department})
-                    </option>
-                  ))}
-                </select>
+            {bulkUploadResult && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>Successfully added {bulkUploadResult.added_count} students (Skipped: {bulkUploadResult.skipped_count}).</span>
               </div>
+            )}
 
+            <form onSubmit={handleBulkUploadStudents} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Target Skill / Deficiency Area
+                  Choose Roster File (.xlsx, .xls, .pdf) *
                 </label>
                 <input
-                  type="text"
-                  value={targetSkill}
-                  onChange={(e) => setTargetSkill(e.target.value)}
-                  placeholder="e.g. Redis Cache Invalidation & CDC"
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.pdf"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-blue-950 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Task Description & Requirements
-                </label>
-                <textarea
-                  rows={3}
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                  placeholder="Provide remediation criteria or reading list. Candidate clears task with a score >= 7.0 on graded assessment."
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-blue-950 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Completion Due Date
-                </label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-blue-950 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  onChange={(e) => setBulkStudentFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-950 dark:file:text-cyan-300"
                 />
               </div>
 
               <div className="pt-2 flex items-center justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => setIsAssignModalOpen(false)}
+                  onClick={() => setIsBulkStudentModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingTask}
+                  disabled={isBulkUploading || !bulkStudentFile}
                   className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/25 flex items-center space-x-1.5 disabled:opacity-50"
                 >
-                  {isSubmittingTask ? (
+                  {isBulkUploading ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Assigning...</span>
+                      <span>Uploading & Parsing...</span>
                     </>
                   ) : (
-                    <span>Assign Task</span>
+                    <span>Upload Students</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Bulk Upload MCQ Bank Modal */}
+      {isBulkMCQModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="max-w-md w-full p-6 rounded-3xl bg-white dark:bg-[#030712] border border-slate-200 dark:border-blue-950 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setIsBulkMCQModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-2.5 mb-5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">
+                  Upload MCQ Question Bank
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Upload Excel (.xlsx, .csv) or PDF document (max 50 MiB)
+                </p>
+              </div>
+            </div>
+
+            {mcqUploadError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{mcqUploadError}</span>
+              </div>
+            )}
+
+            {mcqUploadResult && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>Inserted {mcqUploadResult.questions_inserted} questions. Total pool: {mcqUploadResult.total_pool_count}.</span>
+              </div>
+            )}
+
+            <form onSubmit={handleBulkUploadMCQs} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Choose Question File (.xlsx, .csv, .pdf) *
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.pdf"
+                  required
+                  onChange={(e) => setBulkMCQFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 dark:file:bg-amber-950 dark:file:text-amber-300"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkMCQModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isMCQUploading || !bulkMCQFile}
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-all shadow-md shadow-amber-500/25 flex items-center space-x-1.5 disabled:opacity-50"
+                >
+                  {isMCQUploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading & Indexing...</span>
+                    </>
+                  ) : (
+                    <span>Upload MCQ Bank</span>
                   )}
                 </button>
               </div>

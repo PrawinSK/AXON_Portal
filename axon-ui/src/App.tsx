@@ -5,12 +5,12 @@ import { Navbar } from './components/Navbar';
 import { LoginPortal } from './components/auth/LoginPortal';
 import { SetupScreen } from './components/SetupScreen';
 import { InterviewRoom } from './components/InterviewRoom';
+import { McqRoom } from './components/McqRoom';
 import { ScorecardView } from './components/ScorecardView';
 import { StudentTasks } from './components/StudentTasks';
 import { StudentProfilesView } from './components/StudentProfilesView';
-import { DepartmentTasksView } from './components/DepartmentTasksView';
 import { HODHeatmap } from './components/HODHeatmap';
-import { KeyPoolMonitor } from './components/KeyPoolMonitor';
+import { MCQQuestionVerifyView } from './components/MCQQuestionVerifyView';
 import { Loader2, Sun, Moon } from 'lucide-react';
 import type {
   AppTab,
@@ -28,8 +28,8 @@ export function AppContent() {
   // Targeted remediation skill passed to interview setup
   const [targetedSkill, setTargetedSkill] = useState<string | undefined>(undefined);
 
-  // Interview Lifecycle States: 'setup' | 'interviewing' | 'concluded'
-  const [interviewPhase, setInterviewPhase] = useState<'setup' | 'interviewing' | 'concluded'>('setup');
+  // Interview Lifecycle States: 'setup' | 'interviewing' | 'concluded' | 'mcq'
+  const [interviewPhase, setInterviewPhase] = useState<'setup' | 'interviewing' | 'concluded' | 'mcq'>('setup');
   const [activeSession, setActiveSession] = useState<StartInterviewResponse | null>(null);
   const [candidateName, setCandidateName] = useState<string>('Candidate');
   const [synthesisResult, setSynthesisResult] = useState<SynthesisResponse | null>(null);
@@ -49,6 +49,10 @@ export function AppContent() {
     setActiveSession(session);
     setCandidateName(name);
     setInterviewPhase('interviewing');
+  };
+
+  const handleStartMCQ = () => {
+    setInterviewPhase('mcq');
   };
 
   const handleInterviewConcluded = (synthesis: SynthesisResponse) => {
@@ -135,7 +139,8 @@ export function AppContent() {
         onSelectTab={(tab) => {
           // Prevent unauthorized tab navigation
           if (role === 'student' && tab !== 'interview' && tab !== 'my-tasks') return;
-          if (role === 'staff' && tab !== 'students' && tab !== 'tasks') return;
+          if (role === 'staff' && tab !== 'students' && tab !== 'mcq-verify') return;
+          if (role === 'hod' && tab !== 'students' && tab !== 'hod' && tab !== 'mcq-verify') return;
           setActiveTab(tab);
         }}
       />
@@ -149,7 +154,15 @@ export function AppContent() {
                 {interviewPhase === 'setup' && (
                   <SetupScreen
                     onInterviewStarted={handleInterviewStarted}
+                    onStartMCQ={handleStartMCQ}
                     initialTargetSkill={targetedSkill}
+                  />
+                )}
+
+                {interviewPhase === 'mcq' && (
+                  <McqRoom
+                    studentName={user?.name || candidateName}
+                    onAbort={handleRestart}
                   />
                 )}
 
@@ -182,7 +195,7 @@ export function AppContent() {
         {role === 'staff' && (
           <>
             {activeTab === 'students' && <StudentProfilesView userRole="staff" />}
-            {activeTab === 'tasks' && <DepartmentTasksView />}
+            {activeTab === 'mcq-verify' && <MCQQuestionVerifyView />}
           </>
         )}
 
@@ -191,8 +204,7 @@ export function AppContent() {
           <>
             {activeTab === 'students' && <StudentProfilesView userRole="hod" />}
             {activeTab === 'hod' && <HODHeatmap />}
-            {activeTab === 'pool' && <KeyPoolMonitor />}
-            {activeTab === 'tasks' && <DepartmentTasksView />}
+            {activeTab === 'mcq-verify' && <MCQQuestionVerifyView />}
           </>
         )}
       </main>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from app.models.auth import (
     StudentLoginRequest,
     StaffLoginRequest,
@@ -46,6 +46,36 @@ def create_student(
         department=payload.department or "Information Technology",
         email=payload.email
     )
+
+
+@router.post("/students/bulk-upload")
+async def bulk_upload_students(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(require_role(["staff", "hod"]))
+):
+    """
+    Allows Staff or HOD to bulk upload students via PDF or Excel (.xlsx, .xls, .csv).
+    Enforces 50 MiB size limit and max 300 student records per batch.
+    """
+    from app.services.student_bulk_service import student_bulk_service
+    content = await student_bulk_service.validate_and_read_file(file)
+    records = student_bulk_service.parse_records(file.filename or "upload.xlsx", content)
+    result = student_bulk_service.process_and_create(records)
+    return result
+
+
+@router.post("/students/cleanup")
+def cleanup_students(
+    current_user: dict = Depends(require_role(["hod"]))
+):
+    """
+    Restricted to HOD: Purges all dummy/garbage students leaving strictly 11234003.
+    """
+    removed = auth_service.remove_all_except(["11234003"])
+    return {
+        "status": "success",
+        "message": f"Purged {removed} garbage student accounts. Remaining active student: 11234003."
+    }
 
 
 @router.post("/staff/create")

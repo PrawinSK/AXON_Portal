@@ -29,10 +29,8 @@ class KeyPoolManager:
     def load_keys(self, keys_file: Optional[str] = None) -> int:
         """Load API keys from file or environment."""
         loaded_keys = []
-        target_file = keys_file or settings.gemini_keys_file
-        
-        # Check relative and absolute paths
-        file_path = Path(target_file)
+        target_file = keys_file or getattr(settings, "gemini_keys_file", "gemini_keys.txt")
+        file_path = Path(target_file) if target_file else None
         if not file_path.is_absolute():
             # Check relative to working directory or project root
             if not file_path.exists():

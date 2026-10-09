@@ -5,10 +5,17 @@ import type {
   SubmitAnswerResponse,
   InterviewStateResponse,
   SynthesisResponse,
-  PoolStatus,
   AuthUser,
   TaskItem,
   DepartmentStudentProfile,
+  MCQSessionStartResponse,
+  MCQStrikeResponse,
+  MCQSubmitResponse,
+  MCQResultSummary,
+  BulkUploadResult,
+  MCQUploadResult,
+  MCQAdminQuestion,
+  MCQUploadBatch,
 } from '../types';
 
 const getBaseUrl = (): string => {
@@ -16,6 +23,10 @@ const getBaseUrl = (): string => {
     const stored = localStorage.getItem('axon_api_url');
     if (stored && stored.trim()) {
       return stored.trim().replace(/\/+$/, '');
+    }
+    // If hosted together on port 8000 or on Render, use the same origin automatically
+    if (window.location.port === '8000' || window.location.hostname.includes('onrender.com')) {
+      return window.location.origin;
     }
   }
   const envUrl = import.meta.env.VITE_API_URL;
@@ -71,7 +82,9 @@ class ApiService {
       let errorMessage = `HTTP ${response.status} ${response.statusText}`;
       try {
         const errorData = await response.json();
-        if (errorData.detail) {
+        if (errorData.error) {
+          errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+        } else if (errorData.detail) {
           errorMessage = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail);
         }
       } catch {
@@ -223,8 +236,108 @@ class ApiService {
     });
   }
 
-  async getPoolStatus(): Promise<PoolStatus> {
-    return this.request('/interview/pool/status');
+  // --- Bulk Student & Roster Management ---
+
+  async bulkUploadStudents(file: File): Promise<BulkUploadResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/auth/students/bulk-upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async cleanupStudents(): Promise<{ status: string; message: string }> {
+    return this.request('/auth/students/cleanup', {
+      method: 'POST',
+    });
+  }
+
+  // --- MCQ Assessment Proctored Endpoints ---
+
+  async uploadMCQBank(file: File): Promise<MCQUploadResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/mcq/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async startMCQSession(): Promise<MCQSessionStartResponse> {
+    return this.request('/mcq/session/start', {
+      method: 'POST',
+    });
+  }
+
+  async recordMCQStrike(sessionId: string): Promise<MCQStrikeResponse> {
+    return this.request(`/mcq/session/${sessionId}/strike`, {
+      method: 'POST',
+    });
+  }
+
+  async submitMCQAnswers(sessionId: string, answers: Record<string, string>): Promise<MCQSubmitResponse> {
+    return this.request(`/mcq/session/${sessionId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  async getAllMCQResults(): Promise<MCQResultSummary[]> {
+    return this.request<MCQResultSummary[]>('/mcq/results/all');
+  }
+
+  async getMyMCQResults(): Promise<MCQResultSummary[]> {
+    return this.request<MCQResultSummary[]>('/mcq/results/my');
+  }
+
+  // --- MCQ Question Verification & Batch Management (Staff & HOD) ---
+
+  async getMCQAdminQuestions(batchId: string = 'all', approvalStatus: string = 'all'): Promise<MCQAdminQuestion[]> {
+    return this.request<MCQAdminQuestion[]>(`/mcq/questions?batch_id=${encodeURIComponent(batchId)}&approval_status=${encodeURIComponent(approvalStatus)}`);
+  }
+
+  async getMCQBatches(): Promise<MCQUploadBatch[]> {
+    return this.request<MCQUploadBatch[]>('/mcq/batches');
+  }
+
+  async updateMCQQuestion(
+    questionId: string,
+    payload: {
+      question_text: string;
+      options: string[];
+      correct_answer: string;
+      explanation?: string;
+      topic?: string;
+      is_approved?: boolean;
+    }
+  ): Promise<MCQAdminQuestion> {
+    return this.request<MCQAdminQuestion>(`/mcq/questions/${encodeURIComponent(questionId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async toggleMCQApproval(questionId: string, isApproved: boolean): Promise<{ id: string; is_approved: boolean }> {
+    return this.request(`/mcq/questions/${encodeURIComponent(questionId)}/approve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_approved: isApproved }),
+    });
+  }
+
+  async deleteMCQQuestion(questionId: string): Promise<{ status: string; message: string }> {
+    return this.request(`/mcq/questions/${encodeURIComponent(questionId)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteMCQBatch(batchId: string): Promise<{ status: string; deleted_count: number; message: string }> {
+    return this.request(`/mcq/batches/${encodeURIComponent(batchId)}`, {
+      method: 'DELETE',
+    });
   }
 }
 
